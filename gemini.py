@@ -14,4 +14,6 @@ with open(PROJECT_DIR+'tokens.gitignore', 'r') as rfile:
 genai.configure(api_key=TOKEN)
 
 model = genai.GenerativeModel('gemini-pro')
-img_model = genai.GenerativeModel("gemini-pro-vision")
+img_model = genai.GenerativeModel("gemini-1.5-flash")
+
+
