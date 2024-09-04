@@ -30,7 +30,7 @@ def apply_hand_points(text: str) -> str:
     """
     pattern = r"(?<=\n)\*\s(?!\*)|^\*\s(?!\*)"
 
-    replaced_text = re.sub(pattern, "👉 ", text)
+    replaced_text = re.sub(pattern, "• ", text)
 
     return replaced_text
 

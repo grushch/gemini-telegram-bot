@@ -7,7 +7,7 @@ import asyncio
 import os
 import logging
 import json
-from gemini import model, img_model
+from gemini import model, multi_model
 from md2tghtml import format_message
 
 PROJECT_DIR = os.path.dirname(__file__)+'/'
@@ -43,9 +43,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await asyncio.sleep(0.1)
 
 async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.chat_data['chat'] is None:
-        new_chat(context)
-    chat = context.chat_data.get('chat') 
     await update.message.chat.send_action(ChatAction.TYPING)
 
     images = update.message.photo
@@ -59,15 +56,41 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.caption:
         prompt = update.message.caption
     elif len(loaded_images) > 1:
-        prompt = "Analyse and describe following images"
-        
+        prompt = "Analyse and describe this images"
     else:
-        prompt = "Analyse and describe following image"
+        prompt = "Analyse and describe this image"
+
     try:
-        response = img_model.generate_content([prompt, *loaded_images]) # Generate a response by llm
+        response = multi_model.generate_content([prompt, *loaded_images]) # Generate a response by llm
         await update.message.reply_text(text=format_message(response.text), parse_mode=ParseMode.HTML, disable_web_page_preview=True) 
     except Exception as e:
         logging.exception(e)
+
+async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.chat.send_action(ChatAction.TYPING)
+
+    voice = update.message.voice
+    file = await voice.get_file()
+    file_bytes = await file.download_as_bytearray()
+    audio_data = {
+                    "mime_type": "audio/ogg",
+                    "data": bytes(file_bytes)
+                    }
+    #prompt = 'Can you transcribe this audio'
+    prompt = ''
+
+    try:
+        response = multi_model.generate_content([prompt, audio_data]) # Generate a response by llm
+        logging.info("LLM Response: %s", response.text)
+        await update.message.reply_text(
+            text=format_message(response.text),
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True
+        )
+    except Exception as e:
+        logging.exception(e)
+
+    await asyncio.sleep(0.1)
 
 
 if __name__ == '__main__':
@@ -80,5 +103,8 @@ if __name__ == '__main__':
     application.add_handler(MessageHandler((filters.TEXT), handle_message))
 
     application.add_handler(MessageHandler((filters.PHOTO), handle_image))
+
+    application.add_handler(MessageHandler((filters.VOICE), handle_voice))
+
 
     application.run_polling()
